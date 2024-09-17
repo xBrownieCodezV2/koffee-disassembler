@@ -3,7 +3,9 @@ package codes.som.anthony.koffee.disassembler
 import codes.som.anthony.koffee.disassembler.data.opcodeNameMap
 import codes.som.anthony.koffee.disassembler.util.DisassemblyContext
 import codes.som.anthony.koffee.disassembler.util.SourceCodeGenerator
+import org.objectweb.asm.Handle
 import org.objectweb.asm.Label
+import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
 import org.objectweb.asm.tree.*
 
@@ -207,11 +209,58 @@ private fun disassembleInstruction(insn: AbstractInsnNode, jumpTargets: List<Lab
             append(")")
         }
 
+        is InvokeDynamicInsnNode -> buildString {
+            append(opcodeName)
+            append("(")
+            append(insn.name)
+            append(insn.desc)
+            append("  ")
+            append(disassembleHandle(insn.bsm))
+            for (bsmArg in insn.bsmArgs) {
+                append(", ")
+                append(bsmArg)
+            }
+            append(")")
+        }
+
+
         is IntInsnNode -> "$opcodeName(${insn.operand})"
 
         else -> "// <unsupported $opcodeName>"
     }
 }
+
+private fun disassembleHandle(handle: Handle): String {
+    return buildString {
+        append("Handle(")
+        append(disassembleHandleTag(handle.tag))
+        append(", ")
+        append(handle.owner)
+        append(", ")
+        append(handle.name)
+        append(", ")
+        append(handle.desc)
+        append(", ")
+        append(if (handle.isInterface) "interface" else "class")
+        append(")")
+    }
+}
+
+private fun disassembleHandleTag(tag: Int): String {
+    return when (tag) {
+        Opcodes.H_GETFIELD -> "GETFIELD"
+        Opcodes.H_GETSTATIC -> "GETSTATIC"
+        Opcodes.H_PUTFIELD -> "PUTFIELD"
+        Opcodes.H_PUTSTATIC -> "PUTSTATIC"
+        Opcodes.H_INVOKEVIRTUAL -> "INVOKEVIRTUAL"
+        Opcodes.H_INVOKESTATIC -> "INVOKESTATIC"
+        Opcodes.H_INVOKESPECIAL -> "INVOKESPECIAL"
+        Opcodes.H_NEWINVOKESPECIAL -> "NEWINVOKESPECIAL"
+        Opcodes.H_INVOKEINTERFACE -> "INVOKEINTERFACE"
+        else -> "UNKNOWN_HANDLE_TAG"
+    }
+}
+
 
 private fun disassembleLabel(label: Label, jumpTargets: List<Label>) = buildString {
     val labelIndex = jumpTargets.indexOf(label) + 1
